@@ -1,0 +1,86 @@
+rules_version = '2';
+
+service firebase.storage {
+  match /b/{bucket}/o {
+    
+    // Helper functions
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+    
+    function isAdmin() {
+      return isAuthenticated() && 
+             firestore.get(/databases/(default)/documents/users/$(request.auth.uid)).data.role == 'admin';
+    }
+    
+    function isValidImageType() {
+      return request.resource.contentType.matches('image/.*');
+    }
+    
+    function isValidAudioType() {
+      return request.resource.contentType.matches('audio/.*');
+    }
+    
+    function isValidVideoType() {
+      return request.resource.contentType.matches('video/.*');
+    }
+    
+    function isValidSize(maxSizeMB) {
+      return request.resource.size < maxSizeMB * 1024 * 1024;
+    }
+    
+    // Generated content paths
+    match /generated_content/{allPaths=**} {
+      
+      // Images: /generated_content/images/{userId}/{storyId}/{filename}
+      match /images/{userId}/{storyId}/{filename} {
+        // Users can read their own images, admins can read all
+        allow read: if isOwner(userId) || isAdmin();
+        
+        // Only authenticated users can write to their own path
+        allow write: if isOwner(userId) && 
+                        isValidImageType() && 
+                        isValidSize(10); // 10MB limit
+      }
+      
+      // Audio: /generated_content/audio/{userId}/{storyId}/{filename}
+      match /audio/{userId}/{storyId}/{filename} {
+        // Users can read their own audio, admins can read all
+        allow read: if isOwner(userId) || isAdmin();
+        
+        // Only authenticated users can write to their own path
+        allow write: if isOwner(userId) && 
+                        isValidAudioType() && 
+                        isValidSize(50); // 50MB limit
+      }
+      
+      // Videos: /generated_content/videos/{userId}/{storyId}/{filename}
+      match /videos/{userId}/{storyId}/{filename} {
+        // Users can read their own videos, admins can read all
+        allow read: if isOwner(userId) || isAdmin();
+        
+        // Only authenticated users can write to their own path
+        allow write: if isOwner(userId) && 
+                        isValidVideoType() && 
+                        isValidSize(100); // 100MB limit
+      }
+    }
+    
+    // User profile images (optional)
+    match /profile_images/{userId}/{filename} {
+      allow read: if true; // Public read
+      allow write: if isOwner(userId) && 
+                      isValidImageType() && 
+                      isValidSize(5); // 5MB limit
+    }
+    
+    // Default deny
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}

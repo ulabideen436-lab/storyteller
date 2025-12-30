@@ -1,0 +1,26 @@
+services:
+  - type: web
+    name: ai-story-generator-api
+    env: python
+    region: oregon
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.10.0
+      - key: PORT
+        value: 10000
+    # Add these environment variables in Render dashboard:
+    # FIREBASE_PROJECT_ID
+    # FIREBASE_PRIVATE_KEY_ID
+    # FIREBASE_PRIVATE_KEY
+    # FIREBASE_CLIENT_EMAIL
+    # FIREBASE_CLIENT_ID
+    # FIREBASE_STORAGE_BUCKET
+    # TOGETHER_API_KEY
+    # CLOUDINARY_CLOUD_NAME
+    # CLOUDINARY_API_KEY
+    # CLOUDINARY_API_SECRET
+    # JWT_SECRET_KEY
+    # ALLOWED_ORIGINS
